@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+work/tools/
+outputs/
+*.wixpdb
+*.log
+.vs/
+.vscode/
+
+# Local user settings
+*.user
+*.suo
+
