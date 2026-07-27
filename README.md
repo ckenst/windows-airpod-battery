@@ -22,6 +22,8 @@ Publish the self-contained app, then build the WiX package with WiX Toolset inst
 
 ```powershell
 dotnet publish .\src\AirPodsBattery.Tray\AirPodsBattery.Tray.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o .\publish\AirPodsBatteryTray
+Copy-Item .\src\AirPodsBattery.Tray\airpods-tray.ico .\publish\AirPodsBatteryTray\ -Force
+Copy-Item .\src\AirPodsBattery.Tray\icons8-airpods-pro-max.png .\publish\AirPodsBatteryTray\ -Force
 wix build .\installer\Product.wxs -d SourceDir="$PWD\publish\AirPodsBatteryTray" -o .\AirPodsBatteryTray.msi
 ```
 

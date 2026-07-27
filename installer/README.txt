@@ -1,6 +1,6 @@
 AirPods Battery Tray installers
 
-The MSI is the conventional installer. It installs the self-contained tray app under your local application data and creates a Start Menu shortcut:
+The MSI is the conventional installer. It installs the self-contained tray app under your local application data, creates a Start Menu shortcut, and enables startup with Windows:
 
     AirPodsBatteryTray.msi
 

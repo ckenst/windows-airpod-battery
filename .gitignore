@@ -2,6 +2,8 @@
 **/obj/
 work/tools/
 outputs/
+dist/
+tools/
 *.wixpdb
 *.log
 .vs/
@@ -10,4 +12,3 @@ outputs/
 # Local user settings
 *.user
 *.suo
-
