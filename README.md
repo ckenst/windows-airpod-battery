@@ -1,8 +1,11 @@
 # AirPods Battery Tray for Windows
 
-A Windows notification-area app that displays battery information for paired AirPods, AirPods Pro, and AirPods Max devices.
+A small Windows tray app that displays battery information for paired AirPods, AirPods Pro, and AirPods Max devices.
 
-## Projects
+<img width="116" height="89" alt="Screenshot 2026-08-06 115550" src="https://github.com/user-attachments/assets/83a6da1f-0298-4e73-98b8-2a1afa0dfc22" />
+
+
+## Project structure
 
 - `src/AirPodsBattery.Core` — shared AirPods advertisement parsing
 - `src/AirPodsBattery.Discovery` — Bluetooth and advertisement diagnostic tool
