@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/AirPodsBattery.Tray/BatteryPanelState.cs" Link="BatteryPanelState.cs" />
+    <Compile Include="../../src/AirPodsBattery.Tray/AirPodsConnectionState.cs" Link="AirPodsConnectionState.cs" />
   </ItemGroup>
 </Project>

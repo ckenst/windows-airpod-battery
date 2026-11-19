@@ -27,9 +27,7 @@ public partial class App : System.Windows.Application
     private bool _connectionCheckInProgress;
     private AirPodsPacket? _lastPacket;
     private readonly object _pairingStateLock = new();
-    private HashSet<string> _pairedAirPodsFamilies = new(StringComparer.OrdinalIgnoreCase);
-    private bool _pairedAirPodsConnected;
-    private DateTimeOffset _lastPairingRefresh = DateTimeOffset.MinValue;
+    private AirPodsConnectionState _connectionState = new(Array.Empty<(string, bool)>());
     private int _lowBatteryThreshold = LoadThreshold();
 
     protected override void OnStartup(StartupEventArgs e)
@@ -137,7 +135,11 @@ public partial class App : System.Windows.Application
             if (battery is not int primaryBattery)
                 continue;
 
-            Dispatcher.Invoke(() => UpdateBattery(primaryBattery, packet));
+            Dispatcher.Invoke(() =>
+            {
+                if (IsPacketFromPairedAirPods(packet))
+                    UpdateBattery(primaryBattery, packet);
+            });
             break;
         }
     }
@@ -192,15 +194,21 @@ public partial class App : System.Windows.Application
         if (_notifyIcon is null || _connectionCheckInProgress)
             return;
 
-        if (DateTimeOffset.UtcNow - _lastPairingRefresh > TimeSpan.FromSeconds(30))
-            _ = RefreshPairedAirPodsStateAsync();
-
-        if (_lastSeen is null || DateTimeOffset.UtcNow - _lastSeen > TimeSpan.FromSeconds(30))
+        _connectionCheckInProgress = true;
+        try
         {
-            _connectionCheckInProgress = true;
-            var connected = await IsAirPodsConnectedAsync();
+            await RefreshPairedAirPodsStateAsync();
+        }
+        finally
+        {
             _connectionCheckInProgress = false;
+        }
 
+        var connected = _lastPacket is null
+            ? _connectionState.IsConnected
+            : IsPacketFromPairedAirPods(_lastPacket);
+        if (!connected || _lastSeen is null || DateTimeOffset.UtcNow - _lastSeen > TimeSpan.FromSeconds(30))
+        {
             _batteryPanel?.UpdateState(BatteryPanelState.Unavailable(
                 _lastPacket?.Model ?? "AirPods", connected, _lastBattery));
             SetTrayIcon(_lastBattery, connected, false);
@@ -212,15 +220,7 @@ public partial class App : System.Windows.Application
     {
         lock (_pairingStateLock)
         {
-            // Until the first device query completes, retain the diagnostic
-            // behavior and allow valid AirPods packets through.
-            if (_lastPairingRefresh == DateTimeOffset.MinValue)
-                return true;
-
-            if (!_pairedAirPodsConnected || _pairedAirPodsFamilies.Count == 0)
-                return false;
-
-            return _pairedAirPodsFamilies.Contains(GetPacketFamily(packet.Model));
+            return _connectionState.Accepts(packet.Model);
         }
     }
 
@@ -229,73 +229,24 @@ public partial class App : System.Windows.Application
         try
         {
             var devices = await DeviceInformation.FindAllAsync(BluetoothDevice.GetDeviceSelector());
-            var families = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var connected = false;
+            var connections = new List<(string Name, bool IsConnected)>();
 
             foreach (var deviceInfo in devices.Where(device =>
                          device.Name.Contains("AirPods", StringComparison.OrdinalIgnoreCase)))
             {
-                var family = GetAirPodsFamily(deviceInfo.Name);
-                if (family is null)
-                    continue;
-
-                families.Add(family);
                 using var device = await BluetoothDevice.FromIdAsync(deviceInfo.Id);
-                connected |= device?.ConnectionStatus == BluetoothConnectionStatus.Connected;
+                connections.Add((deviceInfo.Name, device?.ConnectionStatus == BluetoothConnectionStatus.Connected));
             }
 
             lock (_pairingStateLock)
             {
-                _pairedAirPodsFamilies = families;
-                _pairedAirPodsConnected = connected;
-                _lastPairingRefresh = DateTimeOffset.UtcNow;
+                _connectionState = new AirPodsConnectionState(connections);
             }
         }
         catch
         {
             // Leave the previous pairing state intact if Bluetooth is busy.
         }
-    }
-
-    private static string? GetAirPodsFamily(string? name)
-    {
-        if (string.IsNullOrWhiteSpace(name) ||
-            !name.Contains("AirPods", StringComparison.OrdinalIgnoreCase))
-            return null;
-
-        if (name.Contains("Max", StringComparison.OrdinalIgnoreCase))
-            return "AirPods Max";
-        if (name.Contains("Pro", StringComparison.OrdinalIgnoreCase))
-            return "AirPods Pro";
-        return "AirPods";
-    }
-
-    private static string GetPacketFamily(string model) => model switch
-    {
-        "AirPods Max" => "AirPods Max",
-        "AirPods Pro" or "AirPods Pro 2" => "AirPods Pro",
-        _ => "AirPods"
-    };
-
-    private static async Task<bool> IsAirPodsConnectedAsync()
-    {
-        try
-        {
-            var devices = await DeviceInformation.FindAllAsync(BluetoothDevice.GetDeviceSelector());
-            foreach (var deviceInfo in devices.Where(device =>
-                         device.Name.Contains("AirPods", StringComparison.OrdinalIgnoreCase)))
-            {
-                using var device = await BluetoothDevice.FromIdAsync(deviceInfo.Id);
-                if (device?.ConnectionStatus == BluetoothConnectionStatus.Connected)
-                    return true;
-            }
-        }
-        catch
-        {
-            // Treat an unavailable Bluetooth query as disconnected until the next check.
-        }
-
-        return false;
     }
 
     private static string BuildBatteryText(AirPodsPacket packet, int primaryBattery)
