@@ -1,10 +1,12 @@
 # AirPods Battery Tray for Windows
 
-A Windows notification-area app that displays battery information for paired AirPods, AirPods Pro, and AirPods Max devices.
+A small Windows tray app that displays battery information for paired AirPods, AirPods Pro, and AirPods Max devices.
 
 Left-click the tray icon to open the battery panel. It shows the current percentage and connection status, or the last reported reading when fresh battery data is unavailable. Click elsewhere or press Escape to dismiss it. Right-click the icon for settings, refresh, and exit. Battery information is shown in the panel instead of a hover tooltip.
 
-## Projects
+<img width="116" height="89" alt="Screenshot 2026-08-06 115550" src="https://github.com/user-attachments/assets/83a6da1f-0298-4e73-98b8-2a1afa0dfc22" />
+
+## Project structure
 
 - `src/AirPodsBattery.Core` — shared AirPods advertisement parsing
 - `src/AirPodsBattery.Discovery` — Bluetooth and advertisement diagnostic tool
