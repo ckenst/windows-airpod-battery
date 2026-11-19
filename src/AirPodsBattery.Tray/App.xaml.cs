@@ -17,6 +17,7 @@ namespace AirPodsBattery.Tray;
 public partial class App : System.Windows.Application
 {
     private Forms.NotifyIcon? _notifyIcon;
+    private BatteryPanel? _batteryPanel;
     private Mutex? _singleInstanceMutex;
     private BluetoothLEAdvertisementWatcher? _watcher;
     private System.Windows.Threading.DispatcherTimer? _staleTimer;
@@ -46,8 +47,11 @@ public partial class App : System.Windows.Application
         {
             Icon = CreateTrayIcon(null, false, false),
             Visible = true,
-            Text = "AirPods battery: waiting for data"
+            Text = string.Empty
         };
+        _batteryPanel = new BatteryPanel();
+        _batteryPanel.UpdateState(BatteryPanelState.Waiting);
+        _notifyIcon.MouseUp += OnTrayMouseUp;
 
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add("AirPods battery monitor").Enabled = false;
@@ -100,6 +104,14 @@ public partial class App : System.Windows.Application
         _watcher.Start();
     }
 
+    private void OnTrayMouseUp(object? sender, Forms.MouseEventArgs e)
+    {
+        if (e.Button == Forms.MouseButtons.Left)
+            _batteryPanel?.Toggle();
+        else if (e.Button == Forms.MouseButtons.Right)
+            _batteryPanel?.Close();
+    }
+
     private void RestartWatcher()
     {
         StopWatcher();
@@ -138,7 +150,7 @@ public partial class App : System.Windows.Application
         _lastBattery = battery;
         _lastPacket = packet;
         _lastSeen = DateTimeOffset.UtcNow;
-        _notifyIcon.Text = BuildBatteryText(packet, battery);
+        _batteryPanel?.UpdateState(BatteryPanelState.Current(packet.Model, battery, BuildBatteryText(packet, battery)));
         SetTrayIcon(battery, true, true);
 
         if (battery <= _lowBatteryThreshold && !_lowBatteryNotified)
@@ -164,8 +176,10 @@ public partial class App : System.Windows.Application
             _staleTimer.Tick -= CheckForStaleData;
         }
         StopWatcher();
+        _batteryPanel?.Dispose();
         if (_notifyIcon is not null)
         {
+            _notifyIcon.MouseUp -= OnTrayMouseUp;
             _notifyIcon.Visible = false;
             _notifyIcon.Dispose();
         }
@@ -187,11 +201,8 @@ public partial class App : System.Windows.Application
             var connected = await IsAirPodsConnectedAsync();
             _connectionCheckInProgress = false;
 
-            _notifyIcon.Text = connected
-                ? _lastBattery is int battery
-                    ? $"{_lastPacket?.Model ?? "AirPods"}: connected — battery unavailable (last: {battery}%)"
-                    : "AirPods: connected — battery unavailable"
-                : "AirPods: disconnected";
+            _batteryPanel?.UpdateState(BatteryPanelState.Unavailable(
+                _lastPacket?.Model ?? "AirPods", connected, _lastBattery));
             SetTrayIcon(_lastBattery, connected, false);
             _lowBatteryNotified = false;
         }

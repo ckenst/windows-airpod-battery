@@ -2,6 +2,8 @@
 
 A Windows notification-area app that displays battery information for paired AirPods, AirPods Pro, and AirPods Max devices.
 
+Left-click the tray icon to open the battery panel. It shows the current percentage and connection status, or the last reported reading when fresh battery data is unavailable. Click elsewhere or press Escape to dismiss it. Right-click the icon for settings, refresh, and exit. Battery information is shown in the panel instead of a hover tooltip.
+
 ## Projects
 
 - `src/AirPodsBattery.Core` — shared AirPods advertisement parsing
@@ -10,6 +12,8 @@ A Windows notification-area app that displays battery information for paired Air
 - `installer` — WiX MSI and portable PowerShell installer scripts
 
 ## Build the tray app
+
+Install a current .NET 10 SDK before building. Self-contained publishes use the latest runtime patch supplied by that SDK.
 
 ```powershell
 dotnet build .\src\AirPodsBattery.Tray\AirPodsBattery.Tray.csproj
